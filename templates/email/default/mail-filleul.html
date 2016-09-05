@@ -1,0 +1,35 @@
+{extends file="email-layout.tpl"}
+
+{* Do not provide a "Open in browser" link  *}
+{block name="browser"}{/block}
+{* No pre-header *}
+{block name="pre-header"}{/block}
+
+{* Subject  *}
+{block name="email-subject"}{loop type="customer" name="parrain" current="false" id=$id_parrain}{$FIRSTNAME} {$LASTNAME}{/loop} souhaite vous parrainer sur {config key="store_name"}{/block}
+
+{* Title  *}
+{block name="email-title"}{loop type="customer" name="parrain" current="false" id=$id_parrain}{$FIRSTNAME} {$LASTNAME}{/loop} souhaite vous parrainer sur {config key="store_name"}{/block}
+
+{* Content  *}
+{block name="email-content"}
+    <p>Bonjour,</p>
+    <p>
+    {loop type="customer" name="parrain" current="false" id=$id_parrain}{$FIRSTNAME} {$LASTNAME}
+        souhaite devenir votre parrain sur <a href="{url path="/"}">{config key="store_name"}</a>. Pour accepter sa demande,
+        il vous suffit lors de la création de votre compte sur {config key="store_name"} d'indiquer l'adresse email {$EMAIL}
+        dans la case 'Adresse e-mail de votre parrain'.</p>
+        
+        {if $remise_filleul > 0}
+            <p>Dès votre première commande vous bénéficierez de <b>{$remise_filleul}% de remise sur votre première commande</b>.
+        {/if}
+        {$FIRSTNAME} {$LASTNAME} bénéficiera d'une réduction de {$label_promo} sur sa prochaine commande.
+        Vous pourrez à votre tour parrainer vos connaissances, et bénéficier vous aussi pour chaque nouveau parrainage
+        d'une remise de {$label_promo} sur votre prochaine commande.
+        </p>
+    {/loop}
+    
+    <p>Très cordialement,</p>
+    
+    <p>L'équipe <a href="{url path="/"}">{config key="store_name"}</a>.</p>
+{/block}

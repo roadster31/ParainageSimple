@@ -1,0 +1,14 @@
+Bonjour,
+
+{$prenom_parrain} {$nom_parrain} souhaite devenir votre parrain sur {config key="store_name"}. Pour accepter sa demande, il vous suffit lors de la création
+de votre compte sur {config key="store_name"} d'indiquer l'adresse email {$parrain_email} dans la case 'Adresse e-mail de votre parrain'.
+
+{if $remise_filleul > 0}Dès votre première commande vous bénéficierez de <b>{$remise_filleul}% de remise sur votre première commande.{/if}
+{$prenom_parrain} {$nom_parrain} bénéficiera d'une réduction de {$LABEL_PROMO} sur sa prochaine commande.
+Vous pourrez à votre tour parrainer vos connaissances, et bénéficier vous aussi pour chaque nouveau parrainage d'une remise de {$label_promo} sur votre prochaine commande.
+
+Rendez-vous très bientôt sur {url path="/"}.
+
+Très cordialement,
+
+L'équipe {config key="store_name"}.

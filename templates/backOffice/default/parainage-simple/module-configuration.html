@@ -1,0 +1,98 @@
+<div class="row">
+    <div class="col-md-12 general-block-decorator">
+        <div class="row">
+            <div class="col-md-12 title title-without-tabs">
+                {intl d='parainagesimple.bo.default' l="Configuration du parainage"}
+            </div>
+        </div>
+
+        <div class="form-container">
+            <div class="row">
+                <div class="col-md-12">
+                    {form name="parainagesimple.form.configure"}
+                    <form action="{url path="/admin/module/ParainageSimple/configure"}" method="post">
+                        {form_hidden_fields form=$form}
+
+                        {include file = "includes/inner-form-toolbar.html"
+                            hide_flags = true
+                            page_url   = "{url path='/admin/module/ParainageSimple'}"
+                            close_url  = "{url path='/admin/modules'}"
+                        }
+
+                        {if $form_error}
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="alert alert-danger">{$form_error_message}</div>
+                                </div>
+                            </div>
+                        {/if}
+
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="alert alert-info">
+                                <p>Ce plugin permet aux clients qui parrainent de nouveaux clients d'obtenir une réduction sur leur prochaine commande
+                                    sous la forme d'un code promo standard qui leur est expédié par mail
+                                    {loop type="message" name="mr" variable="parrainage_simple_mail_parrain"}
+                                        (<a href="{url path="/admin/configuration/messages/update" message_id=$ID}">configurer ce message</a>).
+                                    {/loop}
+                                    Les filleuls reçoivent eux aussi un mail qui leur signale qu'une remise les attends pour leur première commande.
+                                    {loop type="message" name="mr" variable="parrainage_simple_mail_filleul"}
+                                        (<a href="{url path="/admin/configuration/messages/update" message_id=$ID}">configurer ce message</a>).
+                                    {/loop}
+
+                                </p>
+                                <p>Indiquez ci-dessous les paramètres de ce code promo.</p>
+                                Les filleuls peuvent aussi bénéficier d'une remise sur leur première commande.
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                {render_form_field form=$form field="type" value=$type}
+                                {render_form_field form=$form field="valeur_parrain" value=$valeur_parrain}
+                                {render_form_field form=$form field="minimum_achat" value=$minimum_achat}
+                                {render_form_field form=$form field="valeur_filleul" value=$valeur_filleul}
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <table class="table table-condensed table-striped table-responsive">
+                                    <thead>
+                                    <tr>
+                                        <td>Réf. parrain</td>
+                                        <td>Nom</td>
+                                        <td>Code promotion</td>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    {loop type="parainagesimple" name="liste"}
+                                        <tr>
+                                            {loop type="customer" name="cust" current=false backend_context=1 id=$CUSTOMER_ID}
+                                                <td>
+                                                    <a href="{url path='/admin/customer/update' customer_id=$CUSTOMER_ID}">{$REF}</a>
+                                                </td>
+                                                <td>
+                                                    <a href="{url path='/admin/customer/update' customer_id=$CUSTOMER_ID}">{$LASTNAME} {$FIRSTNAME}</a>
+                                                </td>
+                                            {/loop}
+                                            {loop type="coupon" name="cp" backend_context=1 id=$COUPON_ID}
+                                                <td>
+                                                    <a href="{url path="admin/coupon/update/$ID"}">{$CODE}</a>
+                                                </td>
+                                            {/loop}
+                                        </tr>
+                                    {/loop}
+                                    {elseloop rel="liste"}
+                                        <tr>
+                                            <td colspan="3"><div class="alert alert-info">Il n'existe aucun parrainage pour le moment</div>
+                                        </tr>
+                                    {/elseloop}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </form>
+                    {/form}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
