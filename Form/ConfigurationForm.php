@@ -32,8 +32,8 @@ class ConfigurationForm extends BaseForm
                 [
                     'constraints' =>  [ new NotBlank() ],
                     'choices' => array(
-                        ParainageSimple::TYPE_POURCENTAGE => $this->translator->trans("Somme", [], ParainageSimple::DOMAIN_NAME),
-                        ParainageSimple::TYPE_SOMME => $this->translator->trans("Pourcentage", [], ParainageSimple::DOMAIN_NAME),
+                        ParainageSimple::TYPE_SOMME => $this->translator->trans("Somme", [], ParainageSimple::DOMAIN_NAME),
+                        ParainageSimple::TYPE_POURCENTAGE => $this->translator->trans("Pourcentage", [], ParainageSimple::DOMAIN_NAME),
                     ),
                     
                     'label' => $this->translator->trans('Type de code promotion', [], ParainageSimple::DOMAIN_NAME),

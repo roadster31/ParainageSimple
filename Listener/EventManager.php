@@ -156,7 +156,9 @@ class EventManager extends BaseAction implements EventSubscriberInterface
     
     public function attribuerRemiseAuFilleul()
     {
-        if ($valeurRemiseFilleul = ParainageSimple::getConfigValue(ParainageSimple::VALEUR_REMISE_FILLEUL) > 0) {
+        $valeurRemiseFilleul = ParainageSimple::getConfigValue(ParainageSimple::VALEUR_REMISE_FILLEUL);
+        
+        if ($valeurRemiseFilleul > 0) {
             /** @var Customer $filleul */
             $filleul = $this->request->getSession()->getCustomerUser();
     
@@ -235,7 +237,7 @@ class EventManager extends BaseAction implements EventSubscriberInterface
                 'constraints' => [
                     new Callback([ 'methods' => [[ $this, 'existenceParrain' ]]])
                 ],
-                // 'required' => true,
+                'required' => false,
                 'label' => Translator::getInstance()->trans(
                     'Adresse e-mail de votre parrain',
                     [],
@@ -254,18 +256,19 @@ class EventManager extends BaseAction implements EventSubscriberInterface
     
     public function existenceParrain($value, ExecutionContextInterface $context)
     {
+        $this->request->getSession()->set('email_parrain', null);
+        
         if (null === \Thelia\Model\CustomerQuery::create()->findOneByEmail($value)) {
             $context->addViolation(
                 Translator::getInstance()->trans(
-                    "Nous n'avons pas trouvé l'adresse e-mail de votre parrain parmis nos client. Merci de vérifier que cette adresse est bien correcte.",
+                    "Nous n'avons pas trouvé l'adresse e-mail de votre parrain parmi nos client. Merci de vérifier que cette adresse est bien correcte.",
                     [ ],
                     ParainageSimple::DOMAIN_NAME
                 )
             );
+        } else {
+            $this->request->getSession()->set('email_parrain', $value);
         }
-        
-        // FIXME Atrocement laid, mais nécessité fait loi.
-        $this->request->getSession()->set('email_parrain', $value);
     }
     
     public function traiterChampParrain(CustomerCreateOrUpdateEvent $event)
