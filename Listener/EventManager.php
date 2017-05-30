@@ -31,10 +31,10 @@ use Thelia\Core\Event\TheliaFormEvent;
 use Thelia\Core\HttpFoundation\Request;
 use Thelia\Core\Translation\Translator;
 use Thelia\Mailer\MailerFactory;
-use Thelia\Model\Base\CustomerQuery;
 use Thelia\Model\CouponQuery;
 use Thelia\Model\Currency;
 use Thelia\Model\Customer;
+use Thelia\Model\CustomerQuery;
 use Thelia\Model\OrderQuery;
 use Thelia\Model\OrderStatusQuery;
 
@@ -42,16 +42,16 @@ class EventManager extends BaseAction implements EventSubscriberInterface
 {
     /**  @var MailerFactory */
     protected $mailer;
-    
+
     /** @var EventDispatcherInterface */
     protected $dispatcher;
 
     /** @var Request $request */
     protected $request;
-    
+
     /** @var ConditionInterface $couponCondition */
     protected $couponCondition;
-    
+
     public function __construct(Request $request, MailerFactory $mailer, EventDispatcherInterface $dispatcher, ConditionInterface $couponCondition)
     {
         $this->request = $request;
@@ -65,12 +65,12 @@ class EventManager extends BaseAction implements EventSubscriberInterface
         // Si la commande d'un filleul a été payée, on crée le coupon pour le parrain, et on lui envoie le mail
         if ($event->getOrder()->isPaid(true)) {
             $filleul = $event->getOrder()->getCustomer();
-            
+
             // Récupérer le parrain
             if (null !== $parrain = CustomerQuery::create()->findPk(intval($filleul->getSponsor()))) {
                 // Créer le code promo
                 $code = sprintf('PAR%dP%d', $filleul->getId(), $parrain->getId());
-                
+
                 if (null === CouponQuery::create()->findOneByCode($code)) {
                     // Le montant / pourcentage à déduire
                     if (ParainageSimple::getConfigValue(ParainageSimple::TYPE_PARAINAGE) == ParainageSimple::TYPE_POURCENTAGE) {
@@ -80,10 +80,10 @@ class EventManager extends BaseAction implements EventSubscriberInterface
                         $couponServiceId = 'thelia.coupon.type.remove_x_amount';
                         $effects = [ 'amount' => ParainageSimple::getConfigValue(ParainageSimple::VALEUR_REMISE_PARRAIN) ];
                     }
-                    
+
                     // Expiration dans 1 an
                     $dateExpiration = (new \DateTime())->add(new \DateInterval('P1Y'));
-                    
+
                     $couponEvent = new CouponCreateOrUpdateEvent(
                         $code, // Code
                         $couponServiceId, // $serviceId
@@ -110,13 +110,13 @@ class EventManager extends BaseAction implements EventSubscriberInterface
                         [], // $freeShippingForMethods,
                         1 // $perCustomerUsageCount,
                     );
-                        
+
                     $this->dispatcher->dispatch(TheliaEvents::COUPON_CREATE, $couponEvent);
-                    
+
                     if ($couponEvent->getCouponModel() !== null) {
                         // Mise en place de la condition sur le total du panier
                         $conditions = new ConditionCollection();
-    
+
                         // La condition est MatchForTotalAmount, la configurer.
                         $conditions[] = $this->couponCondition->setValidatorsFromForm(
                             [
@@ -128,11 +128,11 @@ class EventManager extends BaseAction implements EventSubscriberInterface
                                 MatchForTotalAmount::CART_CURRENCY => Currency::getDefaultCurrency()->getCode()
                             ]
                         );
-    
+
                         $couponEvent->setConditions($conditions);
-    
+
                         $this->dispatcher->dispatch(TheliaEvents::COUPON_CONDITION_UPDATE, $couponEvent);
-    
+
                         // Envoyer le mail au client
                         $this->mailer->sendEmailToCustomer(
                             ParainageSimple::MAIL_PARRAIN,
@@ -153,15 +153,15 @@ class EventManager extends BaseAction implements EventSubscriberInterface
             }
         }
     }
-    
+
     public function attribuerRemiseAuFilleul()
     {
         $valeurRemiseFilleul = ParainageSimple::getConfigValue(ParainageSimple::VALEUR_REMISE_FILLEUL);
-        
+
         if ($valeurRemiseFilleul > 0) {
             /** @var Customer $filleul */
             $filleul = $this->request->getSession()->getCustomerUser();
-    
+
             // Si le client est parrainé, et que c'est sa première commande
             if (null !== $parrain = CustomerQuery::create()->findPk(intval($filleul->getSponsor()))) {
                 // Compter le nombre de commandes non annulées de ce client
@@ -169,21 +169,21 @@ class EventManager extends BaseAction implements EventSubscriberInterface
                     ->filterByCustomerId($filleul->getId())
                     ->filterByOrderStatus(OrderStatusQuery::getCancelledStatus(), Criteria::NOT_EQUAL)
                     ->count();
-        
+
                 if ($orderCount == 0) {
                     // Creer un coupon du montant de la remise, et le placer dans la commande.
                     $code = sprintf('PARRAINAGE%dP%d', $filleul->getId(), $parrain->getId());
-            
+
                     if (null === $coupon = CouponQuery::create()->findOneByCode($code)) {
                         // Le pourcentage à déduire
                         $effects = ['percentage' => $valeurRemiseFilleul];
-                
+
                         // Le type de remise
                         $couponServiceId = 'thelia.coupon.type.remove_x_percent';
-                
+
                         // Expiration dans 1 an
                         $dateExpiration = (new \DateTime())->add(new \DateInterval('P1Y'));
-                
+
                         $couponEvent = new CouponCreateOrUpdateEvent(
                             $code, // Code
                             $couponServiceId, // $serviceId
@@ -210,16 +210,16 @@ class EventManager extends BaseAction implements EventSubscriberInterface
                             [], // $freeShippingForMethods,
                             1 // $perCustomerUsageCount,
                         );
-                
+
                         $this->dispatcher->dispatch(TheliaEvents::COUPON_CREATE, $couponEvent);
-                
+
                         $coupon = $couponEvent->getCouponModel();
                     }
-            
+
                     if (null !== $coupon) {
                         // Consommer notre coupon
                         $couponConsumeEvent = new CouponConsumeEvent($code);
-                
+
                         // Dispatch Event to the Action
                         $this->dispatcher->dispatch(TheliaEvents::COUPON_CONSUME, $couponConsumeEvent);
                     }
@@ -227,7 +227,7 @@ class EventManager extends BaseAction implements EventSubscriberInterface
             }
         }
     }
-    
+
     public function ajouterSaisieParrain(TheliaFormEvent $event)
     {
         $event->getForm()->getFormBuilder()->add(
@@ -253,12 +253,12 @@ class EventManager extends BaseAction implements EventSubscriberInterface
             ]
         );
     }
-    
+
     public function existenceParrain($value, ExecutionContextInterface $context)
     {
         $this->request->getSession()->set('email_parrain', null);
-        
-        if (null === \Thelia\Model\CustomerQuery::create()->findOneByEmail($value)) {
+
+        if (null === CustomerQuery::create()->findOneByEmail($value)) {
             $context->addViolation(
                 Translator::getInstance()->trans(
                     "Nous n'avons pas trouvé l'adresse e-mail de votre parrain parmi nos client. Merci de vérifier que cette adresse est bien correcte.",
@@ -270,22 +270,22 @@ class EventManager extends BaseAction implements EventSubscriberInterface
             $this->request->getSession()->set('email_parrain', $value);
         }
     }
-    
+
     public function traiterChampParrain(CustomerCreateOrUpdateEvent $event)
     {
         if ($event->hasCustomer()) {
             $emailParrain = $this->request->getSession()->get('email_parrain', null);
-            
+
             if (! empty($emailParrain) && null !== $parrain = CustomerQuery::create()->findOneByEmail($emailParrain)) {
                 $event->getCustomer()
                     ->setSponsor($parrain->getId())
                     ->save();
             }
         }
-    
+
         $this->request->getSession()->set('email_parrain', null);
     }
-    
+
     public static function getSubscribedEvents()
     {
         return [
