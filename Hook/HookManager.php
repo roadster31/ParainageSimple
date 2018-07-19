@@ -12,6 +12,7 @@
 namespace ParainageSimple\Hook;
 
 use ParainageSimple\ParainageSimple;
+use ParainageSimple\ParainageSimpleConfiguration;
 use Thelia\Core\Event\Hook\HookRenderEvent;
 use Thelia\Core\Hook\BaseHook;
 use Thelia\Model\CustomerQuery;
@@ -38,6 +39,7 @@ class HookManager extends BaseHook
     
     public function onCustomerEdit(HookRenderEvent $event)
     {
+        //TODO
         if (null !== $customer = CustomerQuery::create()->findPk($event->getArgument('customer_id'))) {
             $event->add(
                 $this->render(
@@ -50,8 +52,11 @@ class HookManager extends BaseHook
     
     public function onRegisterFormBottom(HookRenderEvent $event)
     {
+        $template = ParainageSimpleConfiguration::useInvitationCode() ?
+            'parainage-simple/register-with-code.html' :
+            'parainage-simple/register.html';
         $event->add(
-            $this->render('parainage-simple/register.html')
+            $this->render($template)
         );
     }
     

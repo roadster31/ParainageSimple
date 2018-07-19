@@ -1,7 +1,7 @@
 Bonjour{if $beneficiary_firstname !== null} {$beneficiary_firstname}{/if}{if $beneficiary_lastname !== null} {$beneficiary_lastname}{/if},
 
 {$sponsor_firstname} {$sponsor_lastname} souhaite devenir votre parrain sur {config key="store_name"}. Pour accepter sa demande, il vous suffit lors de la création
-de votre compte sur {config key="store_name"} d'indiquer l'adresse email {$parrain_email} dans la case 'Adresse e-mail de votre parrain'.
+de votre compte sur {config key="store_name"} d'indiquer le code {$sponsor_code} dans la case 'Code parrain'.
 
 {if $beneficiary_discount > 0}Dès votre première commande vous bénéficierez de <b>{$beneficiary_discount}% de remise sur votre première commande.{/if}
 {$sponsor_firstname} {$sponsor_lastname} bénéficiera d'une réduction de {$LABEL_PROMO} sur sa prochaine commande.

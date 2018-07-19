@@ -45,14 +45,15 @@
                                 Les filleuls peuvent aussi bénéficier d'une remise sur leur première commande.
                                 </div>
                             </div>
-                            
+
                             <div class="col-md-6">
+                                {render_form_field form=$form field="use_invitation_code" value=$use_invitation_code}
                                 {render_form_field form=$form field="type" value=$type}
                                 {render_form_field form=$form field="valeur_parrain" value=$valeur_parrain}
                                 {render_form_field form=$form field="minimum_achat" value=$minimum_achat}
                                 {render_form_field form=$form field="valeur_filleul" value=$valeur_filleul}
                             </div>
-                            
+
                             <div class="col-md-6">
                                 <table class="table table-condensed table-striped table-responsive">
                                     <thead>

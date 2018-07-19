@@ -12,6 +12,7 @@
 namespace ParainageSimple\Form;
 
 use ParainageSimple\ParainageSimple;
+use Symfony\Component\Form\Extension\Core\Type\EmailType;
 use Symfony\Component\Validator\Constraints\Email;
 use Symfony\Component\Validator\Constraints\NotBlank;
 use Thelia\Form\BaseForm;
@@ -23,7 +24,7 @@ class InvitationForm extends BaseForm
         $this->formBuilder
             ->add(
                 'email',
-                'email',
+                EmailType::class,
                 [
                     'constraints' =>  [ new NotBlank(), new Email() ],
                     'label' => $this->translator->trans('Indiquez l\'email de votre ami', [], ParainageSimple::DOMAIN_NAME),

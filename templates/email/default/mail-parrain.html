@@ -13,11 +13,11 @@
 
 {* Content  *}
 {block name="email-content"}
-    {loop type="customer" name="parrain" current="false" id=$id_parrain}
+    {loop type="customer" name="parrain" current="false" id=$sponsor_id}
     <p>Bonjour {$FIRSTNAME} {$LASTNAME},</p>
     {/loop}
     
-    {loop type="customer" name="filleul" current="false" id=$id_filleul}
+    {loop type="customer" name="filleul" current="false" id=$beneficiary_id}
     <p>Bonne nouvelle, {$FIRSTNAME} {$LASTNAME} vous à choisi comme parrain sur <a href="{url path="/"}">{config key="store_name"}</a> !</p>
     {/loop}
     

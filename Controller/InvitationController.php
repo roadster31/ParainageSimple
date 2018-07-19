@@ -15,59 +15,119 @@
 
 namespace ParainageSimple\Controller;
 
-use ParainageSimple\ParainageSimple;
+use ParainageSimple\Action\Sponsorship;
+use ParainageSimple\Event\SponsorshipCreateEvent;
+use ParainageSimple\Event\SponsorshipDeleteEvent;
+use ParainageSimple\Model\SponsorshipCode;
+use ParainageSimple\Model\SponsorshipStatus;
+use ParainageSimple\Model\SponsorshipStatusQuery;
+use ParainageSimple\ParainageSimpleConfiguration;
+use ParainageSimple\ParainageSimpleHelper;
 use Thelia\Controller\Front\BaseFrontController;
-use Thelia\Form\Exception\FormValidationException;
+use Thelia\Core\Translation\Translator;
+use Thelia\Log\Tlog;
 use Thelia\Model\ConfigQuery;
 use Thelia\Model\Customer;
-use Thelia\Tools\URL;
 
 class InvitationController extends BaseFrontController
 {
+    public function invitationCustom() {
+        $invitationForm = $this->createForm('parainagesimple.form.invitation.custom');
+        $errorMessage = null;
+        try {
+            $form = $this->validateForm($invitationForm, "POST");
+            $data = $form->getData();
+            $this->senInvitationEmail($data);
+        } catch (\Exception $ex) {
+            $errorMessage = $ex->getMessage();
+        }
+        $invitationForm->setErrorMessage($errorMessage);
+        $this->getParserContext()
+            ->setGeneralError($errorMessage)
+            ->addForm($invitationForm);
+
+        return $this->generateErrorRedirect($invitationForm);
+    }
+
     public function invitation()
     {
         $invitationForm = $this->createForm('parainagesimple.form.invitation');
-    
+        $errorMessage = null;
         try {
             $form = $this->validateForm($invitationForm, "POST");
-        
-            // Get the form field values
             $data = $form->getData();
-        
-            /** @var Customer $parrain */
-            if (null !== $parrain = $this->getSession()->getCustomerUser()) {
-                if (strtolower($data['email']) == strtolower($parrain->getEmail())) {
-                    throw new \Exception("Vous ne pouvez pas être votre propre parrain.");
-                }
-                
-                $this->getMailer()->sendEmailMessage(
-                    ParainageSimple::MAIL_INVITATION_FILLEUL,
-                    [ ConfigQuery::getStoreEmail() => ConfigQuery::getStoreName() ],
-                    [ $data['email'] => '' ],
-                    [
-                        'id_parrain' => $parrain->getId(),
-                        'label_promo' => ParainageSimple::getlabelPromo(
-                            ParainageSimple::getConfigValue(ParainageSimple::TYPE_PARAINAGE),
-                            ParainageSimple::getConfigValue(ParainageSimple::VALEUR_REMISE_PARRAIN),
-                            ParainageSimple::getConfigValue(ParainageSimple::MONTANT_ACHAT_MINIMUM)
-                        ),
-                        'remise_filleul' => ParainageSimple::getConfigValue(ParainageSimple::VALEUR_REMISE_FILLEUL)
-                    ]
-                );
-                
-                return $this->generateSuccessRedirect($invitationForm);
-            } else {
-                throw new \Exception("Vous devez être connecté pour parrainer un ami");
-            }
+            $this->senInvitationEmail($data);
         } catch (\Exception $ex) {
             $errorMessage = $ex->getMessage();
-            $invitationForm->setErrorMessage($errorMessage);
         }
-    
+        $invitationForm->setErrorMessage($errorMessage);
         $this->getParserContext()
             ->setGeneralError($errorMessage)
             ->addForm($invitationForm);
         
         return $this->generateErrorRedirect($invitationForm);
+    }
+
+    /**
+     * @param $data
+     * @throws \Exception
+     */
+    private function senInvitationEmail($data) {
+        /** @var Customer $sponsor */
+        $sponsor = $this->getSession()->getCustomerUser();
+        if (null === $sponsor) {
+            throw new \Exception(Translator::getInstance()->trans('You must be connected to invite a friend'));
+        }
+        if (stripos($data['email'], $sponsor->getEmail())) {
+            throw new \Exception(Translator::getInstance()->trans('You cannot be your own sponsor'));
+        }
+
+        $this->getRequest()->getSession()->set("parainage_simple_invitation_message", $data['message']);
+
+        $invitationWithCode = ParainageSimpleConfiguration::useInvitationCode();
+
+        $code = null;
+
+        if ($invitationWithCode) {
+            $code = SponsorshipCode::generateRandomCode();
+            $sponsorshipEvent = new SponsorshipCreateEvent();
+            /** @noinspection PhpParamsInspection */
+            $sponsorshipEvent->setStatus(SponsorshipStatusQuery::create()->findOneByCode(SponsorshipStatus::CODE_INVITATION_SENT));
+            $sponsorshipEvent->setFirstname($data['firstname']);
+            $sponsorshipEvent->setLastname($data['lastname']);
+            $sponsorshipEvent->setEmail($data['email']);
+            $sponsorshipEvent->setCode($code);
+            $sponsorshipEvent->setSponsorId($sponsor->getId());
+            $this->getDispatcher()->dispatch(Sponsorship::SPONSORSHIP_CREATE, $sponsorshipEvent);
+        }
+
+        try {
+            $this->getMailer()->sendEmailMessage(
+                ParainageSimpleConfiguration::getMessageCodeForInvitation(),
+                [ ConfigQuery::getStoreEmail() => ConfigQuery::getStoreName() ],
+                [ $data['email'] => '' ],
+                [
+                    'sponsor_id' => $sponsor->getId(),
+                    'sponsor_code' => $code,
+                    'beneficiary_firstname' => $data['firstname'],
+                    'beneficiary_lastname' => $data['lastname'],
+                    'custom_message' => $data['message'],
+                    'label_promo' => ParainageSimpleHelper::getDiscountLabel(
+                        ParainageSimpleConfiguration::getSponsorshipType(),
+                        ParainageSimpleConfiguration::getSponsorDiscountAmount(),
+                        ParainageSimpleConfiguration::getMinimumCartAmount()
+                    ),
+                    'beneficiary_discount' => ParainageSimpleConfiguration::getBeneficiaryDiscountAmount()
+                ]
+            );
+        } catch (\Exception $e) {
+            Tlog::getInstance()->error($e->getMessage());
+            if ($code !== null) {
+                $sponsorshipEvent = new SponsorshipDeleteEvent();
+                $sponsorshipEvent->setCode($code);
+                $this->getDispatcher()->dispatch(Sponsorship::SPONSORSHIP_DELETE, $sponsorshipEvent);
+            }
+            throw new \Exception(Translator::getInstance()->trans('Fail to send the email'));
+        }
     }
 }

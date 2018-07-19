@@ -27,7 +27,7 @@ class ConfigurationController extends BaseAdminController
 {
     public function configure()
     {
-        if (null !== $response = $this->checkAuth(AdminResources::MODULE, 'ParainageSimple', AccessManager::UPDATE)) {
+        if (null !== $response = $this->checkAuth(AdminResources::MODULE, ucfirst(ParainageSimple::DOMAIN_NAME), AccessManager::UPDATE)) {
             return $response;
         }
 

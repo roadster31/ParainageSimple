@@ -2,29 +2,55 @@
 <database defaultIdMethod="native" name="thelia"
           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
           xsi:noNamespaceSchemaLocation="../../../core/vendor/propel/propel/resources/xsd/database.xsd" >
-    <!--
-    See propel documentation on http://propelorm.org for all information about schema file
 
-    <table name="product_rel" namespace="ParainageSimple\Model">
-        <column autoIncrement="true" name="id" primaryKey="true" required="true" type="INTEGER" />
-        <column defaultValue="0" name="visible" required="true" type="TINYINT" />
-        <column defaultValue="0" name="position" required="true" type="INTEGER" />
+
+    <table name="sponsorship" namespace="ParainageSimple\Model" description="Sponsorship Table"  allowPkInsert="true">
+        <column name="id" type="INTEGER"  required="true" primaryKey="true" autoIncrement="true" description="Sponsorship Id" />
+        <column name="sponsor_id" type="INTEGER" required="true"/>
+        <column name="beneficiary_id" type="INTEGER"/>
+        <column name="code" type="VARCHAR" size="45" required="true"  description="The invitation code" />
+        <column name="beneficiary_email" type="VARCHAR" size="128" required="true"  description="Beneficiary E-Mail Address" />
+        <column name="beneficiary_firstname" type="VARCHAR" size="255"  description="Beneficiary firstname"/>
+        <column name="beneficiary_lastname" type="VARCHAR" size="255"  description="Beneficiary lastname"/>
+        <column name="status" type="INTEGER" required="true" description="Sponsorship Status" />
+        <foreign-key foreignTable="customer" name="fk_sponsorship_beneficiary_id" onDelete="CASCADE" onUpdate="RESTRICT">
+            <reference foreign="id" local="beneficiary_id" />
+        </foreign-key>
+        <foreign-key foreignTable="customer" name="fk_sponsorship_customer_id" onDelete="CASCADE" onUpdate="RESTRICT">
+            <reference foreign="id" local="sponsor_id" />
+        </foreign-key>
+        <foreign-key foreignTable="sponsorship_status" name="fk_sponsorship_status_id">
+            <reference foreign="id" local="status" />
+        </foreign-key>
+        <unique name="sponsorship_UNIQUE">
+            <unique-column name="sponsor_id" />
+            <unique-column name="beneficiary_email" />
+        </unique>
+        <unique name="beneficiary_id_UNIQUE">
+            <unique-column name="sponsor_id" />
+            <unique-column name="beneficiary_id" />
+        </unique>
+        <unique name="sponsorship_code_UNIQUE">
+            <unique-column name="code" />
+        </unique>
+        <behavior name="timestampable" />
+    </table>
+
+    <table name="sponsorship_status" namespace="ParainageSimple\Model" description="Sponsorship Status"  allowPkInsert="true">
+        <column name="id" primaryKey="true" required="true" type="INTEGER" autoIncrement="true" description="Sponsorship Status Id" />
+        <column name="code" required="true" size="45" type="VARCHAR" description="Sponsorship Status Code"/>
+        <column name="color" size="7" type="CHAR" description="Sponsorship Status Color"/>
+        <column name="position" type="INTEGER" />
         <column name="title" size="255" type="VARCHAR" />
         <column name="description" type="CLOB" />
-        <column name="chapo" type="LONGVARCHAR" />
-        <column name="postscriptum" type="LONGVARCHAR" />
-        <foreign-key foreignTable="product" name="fk_product_id" onDelete="CASCADE" onUpdate="RESTRICT">
-            <reference foreign="id" local="product_id" />
-        </foreign-key>
+        <unique name="sponsorship_status_code_UNIQUE">
+            <unique-column name="code" />
+        </unique>
         <behavior name="timestampable" />
         <behavior name="i18n">
-            <parameter name="i18n_columns" value="title, description, chapo, postscriptum" />
-        </behavior>
-        <behavior name="versionable">
-            <parameter name="log_created_at" value="true" />
-            <parameter name="log_created_by" value="true" />
+            <parameter name="i18n_columns" value="title, description" />
         </behavior>
     </table>
-    -->
+
     <external-schema filename="local/config/schema.xml" referenceOnly="true" />
 </database>
