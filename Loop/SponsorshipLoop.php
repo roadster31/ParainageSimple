@@ -82,7 +82,6 @@ class SponsorshipLoop extends BaseLoop implements PropelSearchLoopInterface
             $code = sprintf('PARRAINAGE%dP%d', $sponsorship->getBeneficiaryId(), $sponsorship->getSponsorId());
             /** @noinspection PhpParamsInspection */
             $coupon = CouponQuery::create()->findOneByCode($code);
-            $coupon->getAmount();
 
             /** @noinspection PhpParamsInspection */
             $loopResultRow = (new LoopResultRow())
