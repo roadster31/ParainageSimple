@@ -14,6 +14,7 @@ use ParainageSimple\Model\Map\SponsorshipTableMap;
 use ParainageSimple\Model\Sponsorship;
 use ParainageSimple\Model\SponsorshipQuery;
 use ParainageSimple\Model\SponsorshipStatusI18nQuery;
+use ParainageSimple\ParainageSimpleHelper;
 use Propel\Runtime\ActiveQuery\Criteria;
 use Thelia\Core\Template\Element\BaseLoop;
 use Thelia\Core\Template\Element\LoopResult;
@@ -78,10 +79,17 @@ class SponsorshipLoop extends BaseLoop implements PropelSearchLoopInterface
         /** @var Sponsorship $sponsorship */
         foreach ($loopResult->getResultDataCollection() as $sponsorship) {
 
+            /*
+             * TODO : check if we need to query coupon_customer_count table
+             * to ensure the coupon is associated to the customer instead
+             * just checking coupon code
+            */
             // Creer un coupon du montant de la remise, et le placer dans la commande.
-            $code = sprintf('PARRAINAGE%dP%d', $sponsorship->getBeneficiaryId(), $sponsorship->getSponsorId());
+            $sponsorCouponCode = ParainageSimpleHelper::getSponsorCouponCode($sponsorship->getBeneficiaryId(), $sponsorship->getSponsorId());
+            $beneficiaryCouponCode = ParainageSimpleHelper::getBeneficiaryCouponCode($sponsorship->getBeneficiaryId(), $sponsorship->getSponsorId());
             /** @noinspection PhpParamsInspection */
-            $coupon = CouponQuery::create()->findOneByCode($code);
+            $sponsorCoupon = CouponQuery::create()->findOneByCode($sponsorCouponCode);
+            $beneficiaryCoupon = CouponQuery::create()->findOneByCode($beneficiaryCouponCode);
 
             /** @noinspection PhpParamsInspection */
             $loopResultRow = (new LoopResultRow())
@@ -91,7 +99,8 @@ class SponsorshipLoop extends BaseLoop implements PropelSearchLoopInterface
                 ->set('BENEFICIARY_EMAIL', $sponsorship->getBeneficiaryEmail())
                 ->set('BENEFICIARY_FIRSTNAME', $sponsorship->getBeneficiaryFirstname())
                 ->set('BENEFICIARY_LASTNAME', $sponsorship->getBeneficiaryLastname())
-                ->set('SPONSOR_COUPON_AMOUNT',  money_format("%n", empty($coupon) ? 0 : $coupon->getAmount()))
+                ->set('SPONSOR_COUPON_AMOUNT',  money_format("%n", empty($sponsorCoupon) ? 0 : $sponsorCoupon->getAmount()))
+                ->set('BENEFICIARY_COUPON_AMOUNT',  money_format("%n", empty($beneficiaryCoupon) ? 0 : $beneficiaryCoupon->getAmount()))
                 ->set('STATUS', SponsorshipStatusI18nQuery::create()->findOneById( $sponsorship->getStatus())->getTitle()
                 );
 

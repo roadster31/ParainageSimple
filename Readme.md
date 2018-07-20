@@ -67,6 +67,7 @@ it des not return anything
 |BENEFICIARY_FIRSTNAME    | beneficiary firstname |
 |BENEFICIARY_LASTNAME    | beneficiary lastname |
 |SPONSOR_COUPON_AMOUNT    | amount the sponsor earn with this sponsorship|
+|BENEFICIARY_COUPON_AMOUNT    | amount the beneficiary earn with this sponsorship|
 |STATUS    |  invitation status|
 
 ### Exemple

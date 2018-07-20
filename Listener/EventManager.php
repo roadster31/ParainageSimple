@@ -83,14 +83,14 @@ class EventManager extends BaseAction implements EventSubscriberInterface
      */
     public function orderStatusUpdate(OrderEvent $event)
     {
-        // Si la commande d'un filleul a été payée, on crée le coupon pour le parrain, et on lui envoie le mail
+        // Si la commande d'un beneficiary a été payée, on crée le coupon pour le sponsor, et on lui envoie le mail
         if ($event->getOrder()->isPaid(true)) {
-            $filleul = $event->getOrder()->getCustomer();
+            $beneficiary = $event->getOrder()->getCustomer();
 
-            // Récupérer le parrain
-            if (null !== $parrain = CustomerQuery::create()->findPk(intval($filleul->getSponsor()))) {
+            // Récupérer le sponsor
+            if (null !== $sponsor = CustomerQuery::create()->findPk(intval($beneficiary->getSponsor()))) {
                 // Créer le code promo
-                $code = sprintf('PAR%dP%d', $filleul->getId(), $parrain->getId());
+                $code = ParainageSimpleHelper::getSponsorCouponCode($beneficiary->getId(), $sponsor->getId());
 
                 /** @noinspection PhpParamsInspection */
                 if (null === CouponQuery::create()->findOneByCode($code)) {
@@ -113,12 +113,12 @@ class EventManager extends BaseAction implements EventSubscriberInterface
                         $couponServiceId, // $serviceId
                         sprintf(
                             "Parrainage de %s %s (%s) par %s %s (%s)",
-                            $filleul->getLastname(),
-                            $filleul->getFirstname(),
-                            $filleul->getRef(),
-                            $parrain->getLastname(),
-                            $parrain->getFirstname(),
-                            $parrain->getRef()
+                            $beneficiary->getLastname(),
+                            $beneficiary->getFirstname(),
+                            $beneficiary->getRef(),
+                            $sponsor->getLastname(),
+                            $sponsor->getFirstname(),
+                            $sponsor->getRef()
                         ), // $title
                         $effects, // $effects
                         '', // $shortDescription
@@ -129,7 +129,7 @@ class EventManager extends BaseAction implements EventSubscriberInterface
                         false, // $isCumulative
                         false, // $isRemovingPostage,
                         1, // $maxUsage,
-                        $parrain->getCustomerLang()->getLocale(), // $locale,
+                        $sponsor->getCustomerLang()->getLocale(), // $locale,
                         [], // $freeShippingForCountries,
                         [], // $freeShippingForMethods,
                         1 // $perCustomerUsageCount,
@@ -160,10 +160,10 @@ class EventManager extends BaseAction implements EventSubscriberInterface
                         // Envoyer le mail au client
                         $this->mailer->sendEmailToCustomer(
                             ParainageSimpleConfiguration::MESSAGE_NAME_MAIL_SPONSOR,
-                            $parrain,
+                            $sponsor,
                             [
-                                'beneficiary_id' => $filleul->getId(),
-                                'sponsor_id' => $parrain->getId(),
+                                'beneficiary_id' => $beneficiary->getId(),
+                                'sponsor_id' => $sponsor->getId(),
                                 'label_promo' => ParainageSimpleHelper::getDiscountLabel(
                                     ParainageSimpleConfiguration::getSponsorshipType(),
                                     ParainageSimpleConfiguration::getSponsorDiscountAmount(),
@@ -210,7 +210,7 @@ class EventManager extends BaseAction implements EventSubscriberInterface
         }
 
         // Creer un coupon du montant de la remise, et le placer dans la commande.
-        $code = sprintf('PARRAINAGE%dP%d', $beneficiary->getId(), $sponsor->getId());
+        $code = ParainageSimpleHelper::getBeneficiaryCouponCode($beneficiary->getId(), $sponsor->getId());
 
         /** @noinspection PhpParamsInspection */
         $coupon = CouponQuery::create()->findOneByCode($code);

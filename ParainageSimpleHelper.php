@@ -14,6 +14,16 @@ use Thelia\Model\Currency;
 
 class ParainageSimpleHelper
 {
+    public static function getSponsorCouponCode($beneficiaryId, $sponsorId)
+    {
+        return sprintf('PAR%dP%d', $beneficiaryId, $sponsorId);
+    }
+
+    public static function getBeneficiaryCouponCode($beneficiaryId, $sponsorId)
+    {
+        return sprintf('PARRAINAGE%dP%d', $beneficiaryId, $sponsorId);
+    }
+
     public static function getDiscountLabel($type, $valeur, $mini)
     {
         $labelCurrency = Currency::getDefaultCurrency()->getSymbol();
