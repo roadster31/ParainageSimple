@@ -16,7 +16,7 @@ use Symfony\Component\Validator\Constraints\NotBlank;
 use Thelia\Core\Translation\Translator;
 use Thelia\Form\BaseForm;
 
-class CustomInvitationForm extends BaseForm
+class InvitationWithCodeForm extends BaseForm
 {
     protected function buildForm()
     {
@@ -52,7 +52,7 @@ class CustomInvitationForm extends BaseForm
                 EmailType::class,
                 [
                     'constraints' => [new NotBlank(), new Email(),],
-                    'label' => Translator::getInstance()->trans('Beneficiary Email addresse'),
+                    'label' => Translator::getInstance()->trans('Beneficiary email address'),
                     'label_attr' => [
                         'help' => Translator::getInstance()->trans('This is the email of the person you want to invite'),
                     ]

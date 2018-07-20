@@ -62,8 +62,14 @@ class HookManager extends BaseHook
     
     public function afficherInvitation(HookRenderEvent $event)
     {
-        $event->add(
-            $this->render('parainage-simple/invitation.html')
-        );
+        if (ParainageSimpleConfiguration::useInvitationCode()) {
+            $event->add(
+                $this->render('parainage-simple/invitation-with-code.html')
+            );
+        } else {
+            $event->add(
+                $this->render('parainage-simple/invitation.html')
+            );
+        }
     }
 }

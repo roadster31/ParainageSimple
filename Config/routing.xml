@@ -8,8 +8,8 @@
         <default key="_controller">ParainageSimple\Controller\ConfigurationController::configure</default>
     </route>
 
-    <route id="parainagesimple.invitation.custom" path="/invitation-parrainage-custom" methods="post">
-        <default key="_controller">ParainageSimple\Controller\InvitationController::invitationCustom</default>
+    <route id="parainagesimple.invitation.code" path="/invitation-sponsorship-code" methods="post">
+        <default key="_controller">ParainageSimple\Controller\InvitationController::invitationWithCode</default>
     </route>
 
     <route id="parainagesimple.invitation" path="/invitation-parrainage" methods="post">

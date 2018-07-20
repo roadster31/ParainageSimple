@@ -28,11 +28,12 @@ use Thelia\Core\Translation\Translator;
 use Thelia\Log\Tlog;
 use Thelia\Model\ConfigQuery;
 use Thelia\Model\Customer;
+use Thelia\Tools\URL;
 
 class InvitationController extends BaseFrontController
 {
-    public function invitationCustom() {
-        $invitationForm = $this->createForm('parainagesimple.form.invitation.custom');
+    public function invitationWithCode() {
+        $invitationForm = $this->createForm('parainagesimple.form.invitation.code');
         $errorMessage = null;
         try {
             $form = $this->validateForm($invitationForm, "POST");
@@ -46,6 +47,13 @@ class InvitationController extends BaseFrontController
             ->setGeneralError($errorMessage)
             ->addForm($invitationForm);
 
+        if (empty($errorMessage) && null != $successUrl = $invitationForm->getSuccessUrl()) {
+            $response = $this->generateRedirect(
+                URL::getInstance()->absoluteUrl($successUrl)
+            );
+
+            return $response;
+        }
         return $this->generateErrorRedirect($invitationForm);
     }
 

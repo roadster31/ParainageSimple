@@ -13,7 +13,7 @@
     <forms>
         <form name="parainagesimple.form.configure" class="ParainageSimple\Form\ConfigurationForm" />
         <form name="parainagesimple.form.invitation" class="ParainageSimple\Form\InvitationForm" />
-        <form name="parainagesimple.form.invitation.custom" class="ParainageSimple\Form\CustomInvitationForm" />
+        <form name="parainagesimple.form.invitation.code" class="ParainageSimple\Form\InvitationWithCodeForm" />
     </forms>
 
     <services>
