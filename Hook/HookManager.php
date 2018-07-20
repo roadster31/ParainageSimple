@@ -39,7 +39,7 @@ class HookManager extends BaseHook
     
     public function onCustomerEdit(HookRenderEvent $event)
     {
-        //TODO
+        //if conf is to use sponsor code, we can retrieve sponsor from sponsorship table too
         if (null !== $customer = CustomerQuery::create()->findPk($event->getArgument('customer_id'))) {
             $event->add(
                 $this->render(
