@@ -17,8 +17,8 @@
     <p>
     {loop type="customer" name="parrain" current="false" id=$sponsor_id}{$FIRSTNAME} {$LASTNAME}
         souhaite devenir votre parrain sur <a href="{url path="/"}">{config key="store_name"}</a>. Pour accepter sa demande,
-        il vous suffit lors de la création de votre compte sur {config key="store_name"} d'indiquer l'adresse email {$EMAIL}
-        dans la case 'Adresse e-mail de votre parrain'.</p>
+        il vous suffit lors de la création de votre compte sur {config key="store_name"} d'indiquer le code <b>{$sponsor_code}</b>
+        dans la case 'Code parrain'.</p>
         
         {if $beneficiary_discount > 0}
             <p>Dès votre première commande vous bénéficierez de <b>{$beneficiary_discount}% de remise sur votre première commande</b>.

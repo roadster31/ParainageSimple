@@ -11,7 +11,12 @@
 
 namespace ParainageSimple\Form;
 
+use ParainageSimple\Model\SponsorshipDiscountType;
 use ParainageSimple\ParainageSimple;
+use ParainageSimple\ParainageSimpleConfiguration;
+use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
+use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
+use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Validator\Constraints\GreaterThan;
 use Symfony\Component\Validator\Constraints\GreaterThanOrEqual;
 use Symfony\Component\Validator\Constraints\NotBlank;
@@ -27,13 +32,24 @@ class ConfigurationForm extends BaseForm
     {
         $this->formBuilder
             ->add(
-                ParainageSimple::TYPE_PARAINAGE,
-                'choice',
+                ParainageSimpleConfiguration::CONFIG_KEY_USE_INVITATION_CODE,
+                CheckboxType::class,
+                [
+                    'constraints' =>  [ new NotBlank() ],
+                    'label' => $this->translator->trans('Send sponsor code', [], ParainageSimple::DOMAIN_NAME),
+                    'label_attr' => [
+                        'help' =>  $this->translator->trans('Check this if you want to follow invitation status', [], ParainageSimple::DOMAIN_NAME)
+                    ]
+                ]
+            )
+            ->add(
+                ParainageSimpleConfiguration::CONFIG_KEY_SPONSORSHIP_TYPE,
+                ChoiceType::class,
                 [
                     'constraints' =>  [ new NotBlank() ],
                     'choices' => array(
-                        ParainageSimple::TYPE_SOMME => $this->translator->trans("Somme", [], ParainageSimple::DOMAIN_NAME),
-                        ParainageSimple::TYPE_POURCENTAGE => $this->translator->trans("Pourcentage", [], ParainageSimple::DOMAIN_NAME),
+                        SponsorshipDiscountType::TYPE_AMOUNT => $this->translator->trans("Somme", [], ParainageSimple::DOMAIN_NAME),
+                        SponsorshipDiscountType::TYPE_PERCENT => $this->translator->trans("Pourcentage", [], ParainageSimple::DOMAIN_NAME),
                     ),
                     
                     'label' => $this->translator->trans('Type de code promotion', [], ParainageSimple::DOMAIN_NAME),
@@ -43,8 +59,8 @@ class ConfigurationForm extends BaseForm
                 ]
             )
             ->add(
-                ParainageSimple::VALEUR_REMISE_PARRAIN,
-                'text',
+                ParainageSimpleConfiguration::CONFIG_KEY_SPONSOR_DISCOUNT_AMOUNT,
+                TextType::class,
                 [
                     'constraints' =>  [ new NotBlank(), new GreaterThan(['value' => 0]) ],
                     'label' => $this->translator->trans('Montant du code promotion offert au parain', [], ParainageSimple::DOMAIN_NAME),
@@ -54,8 +70,8 @@ class ConfigurationForm extends BaseForm
                 ]
             )
             ->add(
-                ParainageSimple::MONTANT_ACHAT_MINIMUM,
-                'text',
+                ParainageSimpleConfiguration::CONFIG_KEY_MINIMUM_CART_AMOUNT,
+                TextType::class,
                 [
                     'constraints' =>  [ new NotBlank(), new GreaterThanOrEqual(['value' => 0]) ],
                     'label' => $this->translator->trans('Montant d\'achat minimum du parrain en Euros', [], ParainageSimple::DOMAIN_NAME),
@@ -65,8 +81,8 @@ class ConfigurationForm extends BaseForm
                 ]
             )
             ->add(
-                ParainageSimple::VALEUR_REMISE_FILLEUL,
-                'text',
+                ParainageSimpleConfiguration::CONFIG_KEY_BENEFICIARY_DISCOUNT_AMOUNT,
+                TextType::class,
                 [
                     'constraints' =>  [ new NotBlank(), new GreaterThanOrEqual(['value' => 0]) ],
                     'label' => $this->translator->trans('Remise accordée au filleur, en %', [], ParainageSimple::DOMAIN_NAME),

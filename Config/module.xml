@@ -12,13 +12,19 @@
     <languages>
         <language>fr_FR</language>
     </languages>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
     <authors>
         <author>
             <name>Franck Allimant</name>
             <company>CQFDev</company>
             <email>thelia@cqfdev.fr</email>
             <website>www.cqfdev.fr</website>
+        </author>
+        <author>
+            <name>Audrey Martel</name>
+            <company>OpenStudio</company>
+            <email>amartel@openstudio.fr</email>
+            <website>openstudio.fr/</website>
         </author>
     </authors>
     <type>classic</type>

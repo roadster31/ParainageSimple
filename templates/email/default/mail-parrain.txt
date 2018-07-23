@@ -1,6 +1,6 @@
-{loop type="customer" name="parrain" current="false" id=$id_parrain}Bonjour {$FIRSTNAME} {$LASTNAME},{/loop}
+{loop type="customer" name="parrain" current="false" id=$sponsor_id}Bonjour {$FIRSTNAME} {$LASTNAME},{/loop}
 
-{loop type="customer" name="filleul" current="false" id=$id_filleul}Bonne nouvelle, {$FIRSTNAME} {$LASTNAME}{/loop} vous à choisi comme parrain sur {$nom_site} !
+{loop type="customer" name="filleul" current="false" id=$beneficiary_id}Bonne nouvelle, {$FIRSTNAME} {$LASTNAME}{/loop} vous à choisi comme parrain sur {$nom_site} !
 
 Votre avantage parrainage est une remise de {$label_promo} sur votre prochaine commande.
 Profitez-en vite en indiquant lors de votre prochaine commande le code promotion {$code_promo}.

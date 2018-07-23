@@ -1,0 +1,89 @@
+<h2>Parrainez vos amis <small>et obtenez des réductions !</small></h2>
+{loop type="info-parainagesimple" name="infos"}
+    <p>
+        {intl l="Parrainez de nouveaux clients,<br>et bénéficiez d'une réduction de %promo<br>sur votre prochaine commande !" promo={$LABEL_PROMOTION}  d='parainagesimple.fo.default'}
+    </p>
+
+    <p>
+        {intl l="C'est rapide et facile:<br>il suffit d'indiquer ci-dessous l'adresse e-mail de vos amis.<br>Dès que l'un d'entre eux passera une commande, vous recevrez une réduction de %promo<br>sur votre prochaine commande." promo={$LABEL_PROMOTION}  d='parainagesimple.fo.default'}
+
+
+        {if $VALEUR_REMISE_FILLEUL > 0}
+            <br>
+            {intl l="Votre filleul bénéficiera quant à lui d'une remise de %discount sur sa première commande." discount={$VALEUR_REMISE_FILLEUL}  d='parainagesimple.fo.default'}
+        {/if}
+    </p>
+{/loop}
+
+{form name="parainagesimple.form.invitation.code"}
+    <form class="form-horizontal" action="{url path="invitation-sponsorship-code"}" method="post">
+        {form_hidden_fields}
+
+        {form_field field="success_url"}
+            <input type="hidden" name="{$name}" value="{navigate to="current" success=1}"/>
+        {/form_field}
+
+        {form_field field="error_url"}
+            <input type="hidden" name="{$name}" value="{navigate to="current"}"/>
+        {/form_field}
+
+        {if $form_error}<div class="alert alert-danger">{$form_error_message}</div>{/if}
+
+        {if $smarty.get.success}
+            <div class="alert alert-success">
+                {intl l="Votre invitation a bien été envoyée, nous vous remercions!"  d='parainagesimple.fo.default'}
+            </div>
+        {/if}
+
+        <!-- Nom -->
+        {form_field field="lastname"}
+            <div class="col-sm-6 {if $error}has-error{/if}">
+                <div class="input-group">
+                    <label class="input-text" for="{$label_attr.for}">{$label}{if $required} <span class="required">*</span>{/if}</label>
+                    <input type="text" name="{$name}" id="{$label_attr.for}" class="" maxlength="255" value="{$value}" {if $required} aria-required="true" required{/if}{if !isset($error_focus) && $error} autofocus{/if}>
+                    {if $error }
+                        <span class="help-block">{$message}</span>
+                        {assign var="error_focus" value="true"}
+                    {/if}
+                </div>
+            </div>
+        {/form_field}
+
+        <!-- Prénom -->
+        {form_field field="firstname"}
+            <div class="col-sm-6 {if $error}has-error{/if}">
+                <div class="input-group">
+                    <label class="input-text" for="{$label_attr.for}">{$label}{if $required} <span class="required">*</span>{/if}</label>
+                    <input type="text" name="{$name}" id="{$label_attr.for}" maxlength="255" value="{$value}"{if $required} aria-required="true" required{/if}{if !isset($error_focus) && $error} autofocus{/if}>
+                    {if $error }
+                        <span class="help-block">{$message}</span>
+                        {assign var="error_focus" value="true"}
+                    {/if}
+                </div>
+            </div>
+        {/form_field}
+        </div>
+
+        <!-- mail -->
+        {form_field field="email"}
+            <div class="input-group">
+                <label for="email">{$label}{if $required} <span class="required">*</span>{/if}</label>
+                <input type="text" name="{$name}" id="{$label_attr.for}" value="">
+            </div>
+        {/form_field}
+
+        <!-- message -->
+        {form_field field="message"}
+            <div class="input-group">
+                <label for="email">{$label}{if $required} <span class="required">*</span>{/if}</label>
+                <textarea rows="8" cols="80" name="{$name}" id="{$label_attr.for}">{$value}</textarea>
+            </div>
+        {/form_field}
+
+        <div class="form-group group-btn">
+            <div class="control-btn col-sm-5 col-sm-offset-3">
+                <button type="submit" class="btn btn-primary"><i class="fa fa-chevron-right"></i> {intl l="Envoyer mon invitation" d='parainagesimple.fo.default'}</button>
+            </div>
+        </div><!--/.form-group-->
+    </form>
+{/form}

@@ -5,6 +5,7 @@
         xsi:schemaLocation="http://thelia.net/schema/dic/config http://thelia.net/schema/dic/config/thelia-1.0.xsd">
 
     <loops>
+        <loop name="sponsorship" class="ParainageSimple\Loop\SponsorshipLoop" />
         <loop name="parainagesimple" class="ParainageSimple\Loop\ParainageLoop" />
         <loop name="info-parainagesimple" class="ParainageSimple\Loop\InfoParainageLoop" />
     </loops>
@@ -12,6 +13,7 @@
     <forms>
         <form name="parainagesimple.form.configure" class="ParainageSimple\Form\ConfigurationForm" />
         <form name="parainagesimple.form.invitation" class="ParainageSimple\Form\InvitationForm" />
+        <form name="parainagesimple.form.invitation.code" class="ParainageSimple\Form\InvitationWithCodeForm" />
     </forms>
 
     <services>
@@ -22,6 +24,11 @@
             <argument type="service" id="thelia.condition.match_for_total_amount" />
             <tag name="kernel.event_subscriber"/>
         </service>
+
+        <service id="parainage_simple.action.sponsorship" class="ParainageSimple\Action\Sponsorship">
+            <tag name="kernel.event_subscriber"/>
+        </service>
+
     </services>
 
     <hooks>

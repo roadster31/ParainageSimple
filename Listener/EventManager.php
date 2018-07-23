@@ -11,10 +11,21 @@
 
 namespace ParainageSimple\Listener;
 
+use ParainageSimple\Action\Sponsorship;
+use ParainageSimple\Event\SponsorshipUpdateEvent;
+use ParainageSimple\Model\SponsorshipDiscountType;
+use ParainageSimple\Model\SponsorshipQuery;
+use ParainageSimple\Model\SponsorshipStatus;
+use ParainageSimple\Model\SponsorshipStatusQuery;
 use ParainageSimple\ParainageSimple;
+use ParainageSimple\ParainageSimpleConfiguration;
+use ParainageSimple\ParainageSimpleHelper;
 use Propel\Runtime\ActiveQuery\Criteria;
+use Propel\Runtime\Exception\PropelException;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use Symfony\Component\Form\Extension\Core\Type\EmailType;
+use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Validator\Constraints\Callback;
 use Symfony\Component\Validator\Context\ExecutionContextInterface;
 use Thelia\Action\BaseAction;
@@ -30,6 +41,7 @@ use Thelia\Core\Event\TheliaEvents;
 use Thelia\Core\Event\TheliaFormEvent;
 use Thelia\Core\HttpFoundation\Request;
 use Thelia\Core\Translation\Translator;
+use Thelia\Log\Tlog;
 use Thelia\Mailer\MailerFactory;
 use Thelia\Model\CouponQuery;
 use Thelia\Model\Currency;
@@ -52,6 +64,10 @@ class EventManager extends BaseAction implements EventSubscriberInterface
     /** @var ConditionInterface $couponCondition */
     protected $couponCondition;
 
+    const FIELD_NAME_SPONSOR_EMAIL = 'email_parrain';
+
+    const FIELD_NAME_SPONSOR_CODE = 'sponsor_code';
+
     public function __construct(Request $request, MailerFactory $mailer, EventDispatcherInterface $dispatcher, ConditionInterface $couponCondition)
     {
         $this->request = $request;
@@ -60,25 +76,33 @@ class EventManager extends BaseAction implements EventSubscriberInterface
         $this->couponCondition = $couponCondition;
     }
 
+    /**
+     * @param OrderEvent $event
+     * @throws \Propel\Runtime\Exception\PropelException
+     * @throws \Exception
+     */
     public function orderStatusUpdate(OrderEvent $event)
     {
-        // Si la commande d'un filleul a été payée, on crée le coupon pour le parrain, et on lui envoie le mail
+        // Si la commande d'un beneficiary a été payée, on crée le coupon pour le sponsor, et on lui envoie le mail
         if ($event->getOrder()->isPaid(true)) {
-            $filleul = $event->getOrder()->getCustomer();
+            $beneficiary = $event->getOrder()->getCustomer();
 
-            // Récupérer le parrain
-            if (null !== $parrain = CustomerQuery::create()->findPk(intval($filleul->getSponsor()))) {
+            // Récupérer le sponsor
+            if (null !== $sponsor = CustomerQuery::create()->findPk(intval($beneficiary->getSponsor()))) {
                 // Créer le code promo
-                $code = sprintf('PAR%dP%d', $filleul->getId(), $parrain->getId());
+                $code = ParainageSimpleHelper::getSponsorCouponCode($beneficiary->getId(), $sponsor->getId());
 
+                /** @noinspection PhpParamsInspection */
                 if (null === CouponQuery::create()->findOneByCode($code)) {
                     // Le montant / pourcentage à déduire
-                    if (ParainageSimple::getConfigValue(ParainageSimple::TYPE_PARAINAGE) == ParainageSimple::TYPE_POURCENTAGE) {
+
+                    $discountAmount = ParainageSimpleConfiguration::getSponsorDiscountAmount();
+                    if (ParainageSimpleConfiguration::getSponsorshipType() == SponsorshipDiscountType::TYPE_PERCENT) {
                         $couponServiceId = 'thelia.coupon.type.remove_x_percent';
-                        $effects = [ 'percentage' => ParainageSimple::getConfigValue(ParainageSimple::VALEUR_REMISE_PARRAIN) ];
+                        $effects = [ 'percentage' => $discountAmount];
                     } else {
                         $couponServiceId = 'thelia.coupon.type.remove_x_amount';
-                        $effects = [ 'amount' => ParainageSimple::getConfigValue(ParainageSimple::VALEUR_REMISE_PARRAIN) ];
+                        $effects = [ 'amount' =>  $discountAmount];
                     }
 
                     // Expiration dans 1 an
@@ -89,12 +113,12 @@ class EventManager extends BaseAction implements EventSubscriberInterface
                         $couponServiceId, // $serviceId
                         sprintf(
                             "Parrainage de %s %s (%s) par %s %s (%s)",
-                            $filleul->getLastname(),
-                            $filleul->getFirstname(),
-                            $filleul->getRef(),
-                            $parrain->getLastname(),
-                            $parrain->getFirstname(),
-                            $parrain->getRef()
+                            $beneficiary->getLastname(),
+                            $beneficiary->getFirstname(),
+                            $beneficiary->getRef(),
+                            $sponsor->getLastname(),
+                            $sponsor->getFirstname(),
+                            $sponsor->getRef()
                         ), // $title
                         $effects, // $effects
                         '', // $shortDescription
@@ -105,7 +129,7 @@ class EventManager extends BaseAction implements EventSubscriberInterface
                         false, // $isCumulative
                         false, // $isRemovingPostage,
                         1, // $maxUsage,
-                        $parrain->getCustomerLang()->getLocale(), // $locale,
+                        $sponsor->getCustomerLang()->getLocale(), // $locale,
                         [], // $freeShippingForCountries,
                         [], // $freeShippingForMethods,
                         1 // $perCustomerUsageCount,
@@ -124,7 +148,7 @@ class EventManager extends BaseAction implements EventSubscriberInterface
                                 MatchForTotalAmount::CART_CURRENCY => Operators::EQUAL
                             ],
                             [
-                                MatchForTotalAmount::CART_TOTAL => ParainageSimple::getConfigValue(ParainageSimple::MONTANT_ACHAT_MINIMUM),
+                                MatchForTotalAmount::CART_TOTAL => ParainageSimpleConfiguration::getMinimumCartAmount(),
                                 MatchForTotalAmount::CART_CURRENCY => Currency::getDefaultCurrency()->getCode()
                             ]
                         );
@@ -135,15 +159,15 @@ class EventManager extends BaseAction implements EventSubscriberInterface
 
                         // Envoyer le mail au client
                         $this->mailer->sendEmailToCustomer(
-                            ParainageSimple::MAIL_PARRAIN,
-                            $parrain,
+                            ParainageSimpleConfiguration::MESSAGE_NAME_MAIL_SPONSOR,
+                            $sponsor,
                             [
-                                'id_filleul' => $filleul->getId(),
-                                'id_parrain' => $parrain->getId(),
-                                'label_promo' => ParainageSimple::getlabelPromo(
-                                    ParainageSimple::getConfigValue(ParainageSimple::TYPE_PARAINAGE),
-                                    ParainageSimple::getConfigValue(ParainageSimple::VALEUR_REMISE_PARRAIN),
-                                    ParainageSimple::getConfigValue(ParainageSimple::MONTANT_ACHAT_MINIMUM)
+                                'beneficiary_id' => $beneficiary->getId(),
+                                'sponsor_id' => $sponsor->getId(),
+                                'label_promo' => ParainageSimpleHelper::getDiscountLabel(
+                                    ParainageSimpleConfiguration::getSponsorshipType(),
+                                    ParainageSimpleConfiguration::getSponsorDiscountAmount(),
+                                    ParainageSimpleConfiguration::getMinimumCartAmount()
                                 ),
                                 'code_promo' => $code
                             ]
@@ -154,88 +178,127 @@ class EventManager extends BaseAction implements EventSubscriberInterface
         }
     }
 
-    public function attribuerRemiseAuFilleul()
+    /**
+     * @throws PropelException
+     * @throws \Exception
+     */
+    public function applyBeneficiaryDiscount()
     {
-        $valeurRemiseFilleul = ParainageSimple::getConfigValue(ParainageSimple::VALEUR_REMISE_FILLEUL);
+        $beneficiaryDiscountAmount = ParainageSimpleConfiguration::getBeneficiaryDiscountAmount();
 
-        if ($valeurRemiseFilleul > 0) {
-            /** @var Customer $filleul */
-            $filleul = $this->request->getSession()->getCustomerUser();
+        if ($beneficiaryDiscountAmount <= 0) {
+            return;
+        }
 
-            // Si le client est parrainé, et que c'est sa première commande
-            if (null !== $parrain = CustomerQuery::create()->findPk(intval($filleul->getSponsor()))) {
-                // Compter le nombre de commandes non annulées de ce client
-                $orderCount = OrderQuery::create()
-                    ->filterByCustomerId($filleul->getId())
-                    ->filterByOrderStatus(OrderStatusQuery::getCancelledStatus(), Criteria::NOT_EQUAL)
-                    ->count();
+        /** @var Customer $beneficiary */
+        $beneficiary = $this->request->getSession()->getCustomerUser();
+        $sponsor = CustomerQuery::create()->findPk(intval($beneficiary->getSponsor()));
 
-                if ($orderCount == 0) {
-                    // Creer un coupon du montant de la remise, et le placer dans la commande.
-                    $code = sprintf('PARRAINAGE%dP%d', $filleul->getId(), $parrain->getId());
+        // Si le client est parrainé, et que c'est sa première commande
+        if ($sponsor === null) {
+            return;
+        }
 
-                    if (null === $coupon = CouponQuery::create()->findOneByCode($code)) {
-                        // Le pourcentage à déduire
-                        $effects = ['percentage' => $valeurRemiseFilleul];
+        // Compter le nombre de commandes non annulées de ce client
+        $orderCount = OrderQuery::create()
+            ->filterByCustomerId($beneficiary->getId())
+            ->filterByOrderStatus(OrderStatusQuery::getCancelledStatus(), Criteria::NOT_EQUAL)
+            ->count();
 
-                        // Le type de remise
-                        $couponServiceId = 'thelia.coupon.type.remove_x_percent';
+        if ($orderCount > 0) {
+            return;
+        }
 
-                        // Expiration dans 1 an
-                        $dateExpiration = (new \DateTime())->add(new \DateInterval('P1Y'));
+        // Creer un coupon du montant de la remise, et le placer dans la commande.
+        $code = ParainageSimpleHelper::getBeneficiaryCouponCode($beneficiary->getId(), $sponsor->getId());
 
-                        $couponEvent = new CouponCreateOrUpdateEvent(
-                            $code, // Code
-                            $couponServiceId, // $serviceId
-                            sprintf(
-                                "Remise 1ère commande suite au parrainage de %s %s (%s) par %s %s (%s)",
-                                $filleul->getLastname(),
-                                $filleul->getFirstname(),
-                                $filleul->getRef(),
-                                $parrain->getLastname(),
-                                $parrain->getFirstname(),
-                                $parrain->getRef()
-                            ), // $title
-                            $effects, // $effects
-                            '', // $shortDescription
-                            '', // $description
-                            true, // $isEnabled
-                            $dateExpiration, // $expirationDate
-                            false, // $isAvailableOnSpecialOffers
-                            false, // $isCumulative
-                            false, // $isRemovingPostage,
-                            1, // $maxUsage,
-                            $parrain->getCustomerLang()->getLocale(), // $locale,
-                            [], // $freeShippingForCountries,
-                            [], // $freeShippingForMethods,
-                            1 // $perCustomerUsageCount,
-                        );
+        /** @noinspection PhpParamsInspection */
+        $coupon = CouponQuery::create()->findOneByCode($code);
+        if (null === $coupon) {
+            // Le pourcentage à déduire
+            $effects = ['percentage' => $beneficiaryDiscountAmount];
 
-                        $this->dispatcher->dispatch(TheliaEvents::COUPON_CREATE, $couponEvent);
+            // Le type de remise
+            $couponServiceId = 'thelia.coupon.type.remove_x_percent';
 
-                        $coupon = $couponEvent->getCouponModel();
-                    }
+            // Expiration dans 1 an
+            $dateExpiration = (new \DateTime())->add(new \DateInterval('P1Y'));
 
-                    if (null !== $coupon) {
-                        // Consommer notre coupon
-                        $couponConsumeEvent = new CouponConsumeEvent($code);
+            $couponEvent = new CouponCreateOrUpdateEvent(
+                $code, // Code
+                $couponServiceId, // $serviceId
+                sprintf(
+                    "Remise 1ère commande suite au parrainage de %s %s (%s) par %s %s (%s)",
+                    $beneficiary->getLastname(),
+                    $beneficiary->getFirstname(),
+                    $beneficiary->getRef(),
+                    $sponsor->getLastname(),
+                    $sponsor->getFirstname(),
+                    $sponsor->getRef()
+                ), // $title
+                $effects, // $effects
+                '', // $shortDescription
+                '', // $description
+                true, // $isEnabled
+                $dateExpiration, // $expirationDate
+                false, // $isAvailableOnSpecialOffers
+                false, // $isCumulative
+                false, // $isRemovingPostage,
+                1, // $maxUsage,
+                $sponsor->getCustomerLang()->getLocale(), // $locale,
+                [], // $freeShippingForCountries,
+                [], // $freeShippingForMethods,
+                1 // $perCustomerUsageCount,
+            );
 
-                        // Dispatch Event to the Action
-                        $this->dispatcher->dispatch(TheliaEvents::COUPON_CONSUME, $couponConsumeEvent);
-                    }
-                }
-            }
+            $this->dispatcher->dispatch(TheliaEvents::COUPON_CREATE, $couponEvent);
+
+            $coupon = $couponEvent->getCouponModel();
+        }
+
+        if (null !== $coupon) {
+            // Consommer notre coupon
+            $couponConsumeEvent = new CouponConsumeEvent($code);
+
+            // Dispatch Event to the Action
+            $this->dispatcher->dispatch(TheliaEvents::COUPON_CONSUME, $couponConsumeEvent);
         }
     }
 
-    public function ajouterSaisieParrain(TheliaFormEvent $event)
+    public function addSponsorCodeField(TheliaFormEvent $event)
     {
         $event->getForm()->getFormBuilder()->add(
-            'email_parrain',
-            "email",
+            self::FIELD_NAME_SPONSOR_CODE,
+            TextType::class,
             [
                 'constraints' => [
-                    new Callback([ 'methods' => [[ $this, 'existenceParrain' ]]])
+                    new Callback([ 'methods' => [[ $this, 'existenceSponsorCode' ]]])
+                ],
+                'required' => false,
+                'label' => Translator::getInstance()->trans(
+                    'Sponsor code',
+                    [],
+                    ParainageSimple::DOMAIN_NAME
+                ),
+                'label_attr'  => [
+                    'help' => Translator::getInstance()->trans(
+                        "If you received an invitation, thank to add the sponsor code here.",
+                        [],
+                        ParainageSimple::DOMAIN_NAME
+                    )
+                ]
+            ]
+        );
+    }
+
+    public function addSponsorEmailField(TheliaFormEvent $event)
+    {
+        $event->getForm()->getFormBuilder()->add(
+            self::FIELD_NAME_SPONSOR_EMAIL,
+            EmailType::class,
+            [
+                'constraints' => [
+                    new Callback([ 'methods' => [[ $this, 'existenceSponsorEmail' ]]])
                 ],
                 'required' => false,
                 'label' => Translator::getInstance()->trans(
@@ -254,9 +317,48 @@ class EventManager extends BaseAction implements EventSubscriberInterface
         );
     }
 
-    public function existenceParrain($value, ExecutionContextInterface $context)
+    public function addSponsorField(TheliaFormEvent $event)
     {
-        $this->request->getSession()->set('email_parrain', null);
+        if (ParainageSimpleConfiguration::useInvitationCode()) {
+            $this->addSponsorCodeField($event);
+        } else {
+            $this->addSponsorEmailField($event);
+        }
+    }
+
+    public function existenceSponsorCode($value, ExecutionContextInterface $context)
+    {
+        $this->request->getSession()->set(self::FIELD_NAME_SPONSOR_CODE, null);
+
+        /** @noinspection PhpParamsInspection */
+        $sponsorship = SponsorshipQuery::create()->findOneByCode($value);
+        if (null === $sponsorship) {
+            $context->addViolation(
+                Translator::getInstance()->trans(
+                    "Non existant sponsor code. Please check the value.",
+                    [ ],
+                    ParainageSimple::DOMAIN_NAME
+                )
+            );
+            return;
+        }
+        /** @noinspection PhpParamsInspection */
+        $sponsorshipStatus = SponsorshipStatusQuery::create()->findOneById($sponsorship->getStatus());
+        if ($sponsorshipStatus->getCode() !== SponsorshipStatus::CODE_INVITATION_SENT) {
+            $context->addViolation(
+                Translator::getInstance()->trans(
+                    "Sponsor code already in use. Please check the value.",
+                    [ ],
+                    ParainageSimple::DOMAIN_NAME
+                ));
+            return;
+        }
+        $this->request->getSession()->set(self::FIELD_NAME_SPONSOR_CODE, $value);
+    }
+
+    public function existenceSponsorEmail($value, ExecutionContextInterface $context)
+    {
+        $this->request->getSession()->set(self::FIELD_NAME_SPONSOR_EMAIL, null);
 
         if (null === CustomerQuery::create()->findOneByEmail($value)) {
             $context->addViolation(
@@ -267,32 +369,84 @@ class EventManager extends BaseAction implements EventSubscriberInterface
                 )
             );
         } else {
-            $this->request->getSession()->set('email_parrain', $value);
+            $this->request->getSession()->set(self::FIELD_NAME_SPONSOR_EMAIL, $value);
         }
     }
 
-    public function traiterChampParrain(CustomerCreateOrUpdateEvent $event)
-    {
-        if ($event->hasCustomer()) {
-            $emailParrain = $this->request->getSession()->get('email_parrain', null);
 
-            if (! empty($emailParrain) && null !== $parrain = CustomerQuery::create()->findOneByEmail($emailParrain)) {
-                $event->getCustomer()
-                    ->setSponsor($parrain->getId())
-                    ->save();
+    public function processSponsorCodeField(CustomerCreateOrUpdateEvent $event)
+    {
+
+        if ($event->hasCustomer()) {
+            $sponsorCode = $this->request->getSession()->get(self::FIELD_NAME_SPONSOR_CODE, null);
+            if (empty($sponsorCode)) {
+                return;
+            }
+            $sponsorship = SponsorshipQuery::create()->findOneByCode($sponsorCode);
+            if ($sponsorship === null) {
+                return;
+            }
+            /** @noinspection PhpParamsInspection */
+            $sponsor = CustomerQuery::create()->findOneById($sponsorship->getSponsorId());
+            if (null !== $sponsor) {
+                try {
+                    $event
+                        ->getCustomer()
+                        ->setSponsor($sponsor->getId())
+                        ->save();
+
+                    $sponsorshipUpdateEvent = new SponsorshipUpdateEvent();
+                    /** @noinspection PhpParamsInspection */
+                    $sponsorshipUpdateEvent->setStatus(SponsorshipStatusQuery::create()->findOneByCode(SponsorshipStatus::CODE_INVITATION_ACCEPTED));
+                    $sponsorshipUpdateEvent->setCode($sponsorCode);
+                    $sponsorshipUpdateEvent->setBeneficiaryId($event->getCustomer()->getId());
+                    $this->dispatcher->dispatch(Sponsorship::SPONSORSHIP_UPDATE, $sponsorshipUpdateEvent);
+                } catch (PropelException $e) {
+                    Tlog::getInstance()->error($e->getMessage());
+                }
             }
         }
+        $this->request->getSession()->set(self::FIELD_NAME_SPONSOR_CODE, null);
+    }
 
-        $this->request->getSession()->set('email_parrain', null);
+    public function processSponsorEmailField(CustomerCreateOrUpdateEvent $event)
+    {
+        if ($event->hasCustomer()) {
+            $emailParrain = $this->request->getSession()->get(self::FIELD_NAME_SPONSOR_EMAIL, null);
+            if (empty($emailParrain)) {
+                return;
+            }
+            $sponsor = CustomerQuery::create()->findOneByEmail($emailParrain);
+            if (null !== $sponsor) {
+                try {
+                    $event
+                        ->getCustomer()
+                        ->setSponsor($sponsor->getId())
+                        ->save();
+                } catch (PropelException $e) {
+                    Tlog::getInstance()->error($e->getMessage());
+                }
+            }
+        }
+        $this->request->getSession()->set(self::FIELD_NAME_SPONSOR_EMAIL, null);
+    }
+
+    public function processSponsorField(CustomerCreateOrUpdateEvent $event)
+    {
+        if (ParainageSimpleConfiguration::useInvitationCode()) {
+            $this->processSponsorCodeField($event);
+        } else {
+            $this->processSponsorEmailField($event);
+        }
     }
 
     public static function getSubscribedEvents()
     {
         return [
             TheliaEvents::ORDER_UPDATE_STATUS => [ 'orderStatusUpdate', 10 ],
-            TheliaEvents::FORM_BEFORE_BUILD . ".thelia_customer_create" => ['ajouterSaisieParrain', 128],
-            TheliaEvents::CUSTOMER_CREATEACCOUNT => [ 'traiterChampParrain', 10 ],
-            TheliaEvents::ORDER_SET_POSTAGE => [ 'attribuerRemiseAuFilleul', 10 ]
+            TheliaEvents::FORM_BEFORE_BUILD . ".thelia_customer_create" => ['addSponsorField', 128],
+            TheliaEvents::CUSTOMER_CREATEACCOUNT => [ 'processSponsorField', 10 ],
+            TheliaEvents::ORDER_SET_POSTAGE => [ 'applyBeneficiaryDiscount', 10 ]
         ];
     }
 }

@@ -11,7 +11,8 @@
 
 namespace ParainageSimple\Loop;
 
-use ParainageSimple\ParainageSimple;
+use ParainageSimple\ParainageSimpleConfiguration;
+use ParainageSimple\ParainageSimpleHelper;
 use Thelia\Core\Template\Element\ArraySearchLoopInterface;
 use Thelia\Core\Template\Element\BaseLoop;
 use Thelia\Core\Template\Element\LoopResult;
@@ -33,15 +34,15 @@ class InfoParainageLoop extends BaseLoop implements ArraySearchLoopInterface
     public function parseResults(LoopResult $loopResult)
     {
         $loopResultRow = (new LoopResultRow())
-            ->set('LABEL_PROMOTION', ParainageSimple::getlabelPromo(
-                ParainageSimple::getConfigValue(ParainageSimple::TYPE_PARAINAGE),
-                ParainageSimple::getConfigValue(ParainageSimple::VALEUR_REMISE_PARRAIN),
-                ParainageSimple::getConfigValue(ParainageSimple::MONTANT_ACHAT_MINIMUM)
+            ->set('LABEL_PROMOTION', ParainageSimpleHelper::getDiscountLabel(
+                ParainageSimpleConfiguration::getSponsorshipType(),
+                ParainageSimpleConfiguration::getSponsorDiscountAmount(),
+                ParainageSimpleConfiguration::getMinimumCartAmount()
             ))
-            ->set('TYPE_PARRAINAGE', ParainageSimple::getConfigValue(ParainageSimple::TYPE_PARAINAGE))
-            ->set('VALEUR_REMISE_FILLEUL', ParainageSimple::getConfigValue(ParainageSimple::VALEUR_REMISE_FILLEUL))
-            ->set('VALEUR_REMISE_PARRAIN', ParainageSimple::getConfigValue(ParainageSimple::VALEUR_REMISE_PARRAIN))
-            ->set('MONTANT_ACHAT_MINIMUM', ParainageSimple::getConfigValue(ParainageSimple::MONTANT_ACHAT_MINIMUM))
+            ->set('TYPE_PARRAINAGE', ParainageSimpleConfiguration::getSponsorshipType())
+            ->set('VALEUR_REMISE_FILLEUL', ParainageSimpleConfiguration::getBeneficiaryDiscountAmount())
+            ->set('VALEUR_REMISE_PARRAIN', ParainageSimpleConfiguration::getSponsorDiscountAmount())
+            ->set('MONTANT_ACHAT_MINIMUM', ParainageSimpleConfiguration::getMinimumCartAmount())
         ;
         
         $loopResult->addRow($loopResultRow);
