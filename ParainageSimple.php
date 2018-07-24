@@ -23,6 +23,11 @@ class ParainageSimple extends BaseModule
 
     public function postActivation(ConnectionInterface $con = null)
     {
+        if (!$this->getConfigValue('is_initialized', false)) {
+            $database = new Database($con);
+            $database->insertSql(null, [__DIR__ . "/Config/thelia.sql"]);
+            $this->setConfigValue('is_initialized', true);
+        }
         ParainageSimpleConfiguration::getInstance()->registerDefaultValuesInDatabase();
     }
 
